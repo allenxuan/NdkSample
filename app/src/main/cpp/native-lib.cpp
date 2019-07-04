@@ -15,12 +15,42 @@
  * 静态注册, 若是c++ compiler, 则方法必须带上extern "C"将方法标识为C Style
  * 动态注册无需extern "C"
  */
-void funcDynamicallyRegisteredInNative1(JNIEnv *env, jobject thiz) {
+void funcDynamicallyRegisteredInNative1(JNIEnv *env, jobject thiz, jobject javaRunnable) {
     LogI("funcDynamicallyRegisteredInNative1() in c++ is invoked");
+    jclass runnableClass = env->FindClass("java/lang/Runnable");
+    if (runnableClass == nullptr) {
+        LogE("funcDynamicallyRegisteredInNative1() in c++ cannot find Runnable class");
+        return;
+    }
+    //寻找run()方法的method id
+    jmethodID runMethodId = env->GetMethodID(runnableClass, "run", "()V");
+    if (runMethodId == nullptr) {
+        LogE("funcDynamicallyRegisteredInNative1() in c++ cannot find run() method id");
+        return;
+    }
+    //调用Runnable对象的run方法
+    env->CallVoidMethod(javaRunnable, runMethodId);
+    //释放jclass局部变量
+    env->DeleteLocalRef(runnableClass);
 }
 
-void funcDynamicallyRegisteredInNative2(JNIEnv *env, jobject thiz) {
+void funcDynamicallyRegisteredInNative2(JNIEnv *env, jobject thiz, jobject javaRunnable) {
     LogI("funcDynamicallyRegisteredInNative2() in c++ is invoked");
+    jclass runnableClass = env->FindClass("java/lang/Runnable");
+    if (runnableClass == nullptr) {
+        LogE("funcDynamicallyRegisteredInNative2() in c++ cannot find Runnable class");
+        return;
+    }
+    //寻找run()方法的method id
+    jmethodID runMethodId = env->GetMethodID(runnableClass, "run", "()V");
+    if (runMethodId == nullptr) {
+        LogE("funcDynamicallyRegisteredInNative2() in c++ cannot find run() method id");
+        return;
+    }
+    //调用Runnable对象的run方法
+    env->CallVoidMethod(javaRunnable, runMethodId);
+    //释放jclass局部变量
+    env->DeleteLocalRef(runnableClass);
 }
 
 

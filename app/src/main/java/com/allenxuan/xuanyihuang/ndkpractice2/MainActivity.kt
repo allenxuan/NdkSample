@@ -18,8 +18,6 @@ class MainActivity : AppCompatActivity() {
         jniFuncEntry.doHeavyTaskInNative(object : Runnable {
             override fun run() {
                 Log.d("MainActivity", "doHeavyTaskInNative callback in java is invoked")
-                Toast.makeText(this@MainActivity, "doHeavyTaskInNative callback in java is invoked", Toast.LENGTH_LONG)
-                    .show()
             }
 
         })
