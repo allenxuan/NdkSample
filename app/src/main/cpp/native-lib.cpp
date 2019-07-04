@@ -11,6 +11,10 @@
 //#define LogI(...) ((void)__android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__))
 #define LogE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
+/**
+ * 静态注册, 若是c++ compiler, 则方法必须带上extern "C"将方法标识为C Style
+ * 动态注册无需extern "C"
+ */
 void funcDynamicallyRegisteredInNative1(JNIEnv *env, jobject thiz) {
     LogI("funcDynamicallyRegisteredInNative1() in c++ is invoked");
 }
@@ -61,6 +65,10 @@ jint JNI_OnLoad(JavaVM *vm, void * /*reserved*/) {
     return JNI_VERSION_1_6;
 }
 
+/**
+ * 静态注册, 若是c++ compiler, 则方法必须带上extern "C"将方法标识为C Style
+ * 动态注册无需extern "C"
+ */
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_allenxuan_xuanyihuang_ndkpractice2_JniFuncEntry_getStringFromNative(JNIEnv *env, jobject thiz) {
     LogI("getStringFromNative() in c++ is invoked");
