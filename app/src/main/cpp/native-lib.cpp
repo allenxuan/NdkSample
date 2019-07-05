@@ -77,7 +77,8 @@ int dynamicallyRegisterNatives(
 }
 
 //Java层的System.loadLibrary()会回调JNI_OnLoad(), 在这里实现native方法动态注册的逻辑
-jint JNI_OnLoad(JavaVM *vm, void * /*reserved*/) {
+//JNI_OnLoad()定义在jni.h中, 已经处理了extern "C"
+JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void * /*reserved*/) {
     JNIEnv *env;
     if (vm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6) != JNI_OK) {
         return JNI_ERR;
