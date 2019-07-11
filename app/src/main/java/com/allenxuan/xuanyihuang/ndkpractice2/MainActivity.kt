@@ -1,6 +1,5 @@
 package com.allenxuan.xuanyihuang.ndkpractice2
 
-import android.nfc.Tag
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Looper
