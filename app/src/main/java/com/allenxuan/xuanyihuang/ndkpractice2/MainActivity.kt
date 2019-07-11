@@ -3,6 +3,7 @@ package com.allenxuan.xuanyihuang.ndkpractice2
 import android.nfc.Tag
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import kotlinx.android.synthetic.main.activity_main.*
@@ -53,6 +54,8 @@ class MainActivity : AppCompatActivity() {
 
             })
         }
+
+        Log.d(TAG, String.format("UI Thread id = %d", Looper.getMainLooper().thread.id))
     }
 
 

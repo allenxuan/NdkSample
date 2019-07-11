@@ -15,12 +15,17 @@
 
 JavaVM *javaVM = nullptr;
 jobject javaThiz = nullptr;
+jobject threadRunnableCallback = nullptr;
 
 
 void init(JNIEnv *env, jobject thiz) {
     LogI("init()");
 
     //缓存native方法所属的java对象
+    if(javaThiz != nullptr){
+        env->DeleteGlobalRef(javaThiz);
+        javaThiz = nullptr;
+    }
     javaThiz = env->NewGlobalRef(thiz);
     if (javaThiz == nullptr) {
         throwJavaRuntimeException(env, "init() cannot create GlobalRef of java \'THIS\'");
@@ -35,6 +40,10 @@ void release(JNIEnv *env, jobject thiz) {
     if (javaThiz != nullptr) {
         env->DeleteGlobalRef(javaThiz);
         javaThiz = nullptr;
+    }
+    if(threadRunnableCallback != nullptr){
+        env->DeleteGlobalRef(threadRunnableCallback);
+        threadRunnableCallback = nullptr;
     }
 }
 
@@ -84,9 +93,15 @@ void *nativeThreadTask(void *params) {
     JNIEnv *env = nullptr;
     //将当前POSIX线程attach到JVM
     if (javaVM->AttachCurrentThread(&env, nullptr) == 0) {
+        if(threadRunnableCallback == nullptr){
+            throwJavaRuntimeException(env, "threadRunnableCallback is nullptr");
+            pthread_exit(nullptr);
+        }
+
         TaskParams *taskParams = (TaskParams *) (params);
 
-        jclass runnableClass = env->FindClass("java/lang/Runnable");
+//        jclass runnableClass = env->FindClass("java/lang/Runnable");
+        jclass runnableClass = env->GetObjectClass(threadRunnableCallback);
         if (runnableClass == nullptr) {
             LogE("nativeThreadTask() in c++ cannot find Runnable class");
         }
@@ -96,11 +111,11 @@ void *nativeThreadTask(void *params) {
             LogE("nativeThreadTask() in c++ cannot find run() method id");
         }
         //调用Runnable对象的run方法
-        if (taskParams->javaRunnableCallback != nullptr && runnableClass != nullptr && runMethodId != nullptr) {
+        if (runnableClass != nullptr && runMethodId != nullptr) {
             LogI("nativeThreadTask native thread id %d", taskParams->threadId);
-            env->CallVoidMethod(taskParams->javaRunnableCallback, runMethodId);
+            env->CallVoidMethod(threadRunnableCallback, runMethodId);
         }
-        env->DeleteGlobalRef(runnableClass);
+        env->DeleteLocalRef(runnableClass);
         delete taskParams;
         //将当前POSIX线程从JVM detach
         javaVM->DetachCurrentThread();
@@ -111,17 +126,13 @@ void *nativeThreadTask(void *params) {
 
 void nativeMultiThreadTask(JNIEnv *env, jobject thiz, jint threadsCount, jobject javaRunnable) {
     LogI("nativeMultiThreadTask() in c++ is invoked");
-    jclass runnableClass = env->FindClass("java/lang/Runnable");
-    if (runnableClass == nullptr) {
-        LogE("nativeMultiThreadTask() in c++ cannot find Runnable class");
-        return;
+
+    //要想在新线程中使用对象javaRunnable，就必须以全局引用方式保存，否则javaRunnable只是局部引用，本方法返回后就会销毁
+    if(threadRunnableCallback != nullptr){
+        env->DeleteGlobalRef(threadRunnableCallback);
+        threadRunnableCallback = nullptr;
     }
-    //寻找run()方法的method id
-    jmethodID runMethodId = env->GetMethodID(runnableClass, "run", "()V");
-    if (runMethodId == nullptr) {
-        LogE("nativeMultiThreadTask() in c++ cannot find run() method id");
-        return;
-    }
+    threadRunnableCallback = env->NewGlobalRef(javaRunnable);
 
     //如果设置为 PTHREAD_CREATE_JOINABLE，就继续用 pthread_join() 来等待和释放资源，否则会内存泄露。
 //    pthread_attr_t pthreadAttr;
@@ -129,21 +140,16 @@ void nativeMultiThreadTask(JNIEnv *env, jobject thiz, jint threadsCount, jobject
 //    // 初始化并设置线程为可连接的（joinable）
 //    pthread_attr_init(&pthreadAttr);
 //    pthread_attr_setdetachstate(&pthreadAttr, PTHREAD_CREATE_JOINABLE);
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < threadsCount; i++) {
         pthread_t tid;
         TaskParams* taskParams = new TaskParams();
         taskParams->threadId = i;
-        taskParams->javaRunnableCallback = javaRunnable;
         int result = pthread_create(&tid, nullptr, nativeThreadTask, (void *) taskParams);
         if (result != 0) {
             LogE("failed to create pthread:%d", i);
         }
     }
 //    pthread_attr_destroy(&pthreadAttr);
-
-
-    //释放jclass局部变量
-    env->DeleteLocalRef(runnableClass);
 }
 
 /**
