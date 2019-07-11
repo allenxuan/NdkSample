@@ -18,7 +18,8 @@ add_library( # Sets the name of the library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        native-lib.cpp)
+        native-lib.cpp
+        util.cpp)
 
 #add_library( # Sets the name of the library.
 #        haha-lib
@@ -35,7 +36,7 @@ add_library( # Sets the name of the library.
 #        ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c )
 
 # Specifies a path to native header files.
-#include_directories(include/)
+include_directories(headers/)
 
 
 # Searches for a specified prebuilt library and stores the path as a

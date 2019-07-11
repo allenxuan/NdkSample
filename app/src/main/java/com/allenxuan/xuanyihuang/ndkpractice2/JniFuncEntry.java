@@ -5,6 +5,10 @@ public class JniFuncEntry {
         System.loadLibrary("native-lib");
     }
 
+    public final native void init();
+
+    public final native void release();
+
     public final native String getStringFromNative();
 
     public final native void doHeavyTaskInNative(Runnable runnable);
@@ -12,4 +16,6 @@ public class JniFuncEntry {
     public final native void funcDynamicallyRegisteredInNative1(Runnable runnable);
 
     public final native void funcDynamicallyRegisteredInNative2(Runnable runnable);
+
+    public final native void nativeMultiThreadTask(int threadsCount, Runnable callback);
 }
