@@ -13,16 +13,18 @@
 //#define LogI(...) ((void)__android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__))
 #define LogE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
+//static 修饰全局变量的时候，这个全局变量只能在本文件中访问，不能在其它文件中访问，即便是 extern 外部声明也不可以。
+//static 修饰一个函数，则这个函数的只能在本文件中调用，不能被其他文件调用。static 修饰的变量存放在全局数据区的静态变量区，
+//包括全局静态变量和局部静态变量，都在全局数据区分配内存。初始化的时候自动初始化为 0。
 JavaVM *javaVM = nullptr;
 jobject javaThiz = nullptr;
 jobject threadRunnableCallback = nullptr;
-
 
 void init(JNIEnv *env, jobject thiz) {
     LogI("init()");
 
     //缓存native方法所属的java对象
-    if(javaThiz != nullptr){
+    if (javaThiz != nullptr) {
         env->DeleteGlobalRef(javaThiz);
         javaThiz = nullptr;
     }
@@ -41,7 +43,7 @@ void release(JNIEnv *env, jobject thiz) {
         env->DeleteGlobalRef(javaThiz);
         javaThiz = nullptr;
     }
-    if(threadRunnableCallback != nullptr){
+    if (threadRunnableCallback != nullptr) {
         env->DeleteGlobalRef(threadRunnableCallback);
         threadRunnableCallback = nullptr;
     }
@@ -93,7 +95,7 @@ void *nativeThreadTask(void *params) {
     JNIEnv *env = nullptr;
     //将当前POSIX线程attach到JVM
     if (javaVM->AttachCurrentThread(&env, nullptr) == 0) {
-        if(threadRunnableCallback == nullptr){
+        if (threadRunnableCallback == nullptr) {
             throwJavaRuntimeException(env, "threadRunnableCallback is nullptr");
             pthread_exit(nullptr);
         }
@@ -128,7 +130,7 @@ void nativeMultiThreadTask(JNIEnv *env, jobject thiz, jint threadsCount, jobject
     LogI("nativeMultiThreadTask() in c++ is invoked");
 
     //要想在新线程中使用对象javaRunnable，就必须以全局引用方式保存，否则javaRunnable只是局部引用，本方法返回后就会销毁
-    if(threadRunnableCallback != nullptr){
+    if (threadRunnableCallback != nullptr) {
         env->DeleteGlobalRef(threadRunnableCallback);
         threadRunnableCallback = nullptr;
     }
@@ -142,7 +144,7 @@ void nativeMultiThreadTask(JNIEnv *env, jobject thiz, jint threadsCount, jobject
 //    pthread_attr_setdetachstate(&pthreadAttr, PTHREAD_CREATE_JOINABLE);
     for (int i = 0; i < threadsCount; i++) {
         pthread_t tid;
-        TaskParams* taskParams = new TaskParams();
+        TaskParams *taskParams = new TaskParams();
         taskParams->threadId = i;
         int result = pthread_create(&tid, nullptr, nativeThreadTask, (void *) taskParams);
         if (result != 0) {
@@ -153,11 +155,22 @@ void nativeMultiThreadTask(JNIEnv *env, jobject thiz, jint threadsCount, jobject
 }
 
 /**
+ extern有两个作用，
+ 第一个,当它与"C"一起连用时，如: extern "C" void fun(int a, int b);则告诉编译器在编译fun这个函数名时按着C的规则去翻译相应的函数名而不是C++的，
+ C++的规则在翻译这个函数名时会把fun这个名字变得面目全非，可能是fun@aBc_int_int#%$也可能是别的，这要看编译器的"脾气"了(不同的编译器采用的方法不一样)，
+ 为什么这么做呢，因为C++支持函数的重载啊，在这里不去过多的论述这个问题，如果你有兴趣可以去网上搜索，相信你可以得到满意的解释!
+ 第二，当extern不与"C"在一起修饰变量或函数时，如在头文件中: extern int g_Int; 它的作用就是声明函数或全局变量的作用范围的关键字，
+ 其声明的函数和变量可以在本模块活其他模块中使用，记住它是一个声明不是定义!也就是说B模块(编译单元)要是引用模块(编译单元)A中定义的全局变量或函数时，
+ 它只要包含A模块的头文件即可,在编译阶段，模块B虽然找不到该函数或变量，但它不会报错，它会在连接时从模块A生成的目标代码中找到此函数。
+ */
+
+/**
  * 静态注册, 若是c++ compiler, 则方法必须带上extern "C"将方法标识为C Style
  * 动态注册无需extern "C"
  */
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_allenxuan_xuanyihuang_ndkpractice2_JniFuncEntry_getStringFromNative(JNIEnv *env, jobject thiz) {
+Java_com_allenxuan_xuanyihuang_ndkpractice2_JniFuncEntry_getStringFromNative(JNIEnv *env,
+                                                                             jobject thiz) {
     LogI("getStringFromNative() in c++ is invoked");
 //    std::string hello = "hello from c++";
 //    return env->NewStringUTF(hello.c_str());
@@ -165,7 +178,8 @@ Java_com_allenxuan_xuanyihuang_ndkpractice2_JniFuncEntry_getStringFromNative(JNI
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_allenxuan_xuanyihuang_ndkpractice2_JniFuncEntry_doHeavyTaskInNative(JNIEnv *env, jobject thiz,
+Java_com_allenxuan_xuanyihuang_ndkpractice2_JniFuncEntry_doHeavyTaskInNative(JNIEnv *env,
+                                                                             jobject thiz,
                                                                              jobject javaRunnable) {
     LogI("doHeavyTaskInNative() in c++ is invoked");
     //寻找Runnable类
@@ -226,7 +240,8 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void * /*reserved*/) {
     // Get jclass with env->FindClass.
     // Register methods with env->RegisterNatives.
     if (dynamicallyRegisterNatives(jniFunEntryClassName, jniFuncEntryMethods,
-                                   sizeof(jniFuncEntryMethods) / sizeof(jniFuncEntryMethods[0]), env)
+                                   sizeof(jniFuncEntryMethods) / sizeof(jniFuncEntryMethods[0]),
+                                   env)
         != JNI_TRUE) {
         LogE("dynamicallyRegisterNatives for JniFuncEntry error");
         return JNI_ERR;

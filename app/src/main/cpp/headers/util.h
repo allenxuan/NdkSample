@@ -5,7 +5,7 @@
 
 #ifndef NDKPRACTICE2_UTIL_H
 #define NDKPRACTICE2_UTIL_H
-extern struct TaskParams {
+struct TaskParams {
     jint threadId;
 };
 
